@@ -1,9 +1,11 @@
 <?php
 /**
  * Plugin Name: wp product excel edite
+ * Plugin URI:  https://websemicolon.com/
  * Description: Export WooCommerce products to Excel with editable fields.
- * Version: 1.0.0
- * Author: Amini
+ * Version: 0.1.0
+ * Author: Saeed Amini
+ * Author URI: https://websemicolon.com/
  * Text Domain: wp-product-excel-edite
  */
 
