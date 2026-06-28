@@ -2,7 +2,9 @@
 
 namespace WPPE\Admin;
 
-if (!defined('ABSPATH')) exit;
+if (!defined('ABSPATH')) {
+    exit;
+}
 
 class SettingsPage
 {
@@ -30,9 +32,11 @@ class SettingsPage
     {
         ?>
         <div class="wrap">
-            <h1>خروجی اکسل محصولات</h1>
+            <h1>مدیریت اکسل محصولات</h1>
 
-            <form method="post" action="<?php echo admin_url('admin-post.php'); ?>">
+            <!-- فرم خروجی (Export) -->
+            <h2>خروجی CSV محصولات</h2>
+            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
                 <?php wp_nonce_field('wppe_export_products', 'wppe_nonce'); ?>
                 <input type="hidden" name="action" value="wppe_export_products">
 
@@ -45,7 +49,7 @@ class SettingsPage
                                 <?php
                                 $cats = get_terms(['taxonomy' => 'product_cat', 'hide_empty' => false]);
                                 foreach ($cats as $cat) {
-                                    echo '<option value="' . $cat->term_id . '">' . $cat->name . '</option>';
+                                    echo '<option value="' . esc_attr($cat->term_id) . '">' . esc_html($cat->name) . '</option>';
                                 }
                                 ?>
                             </select>
@@ -53,7 +57,35 @@ class SettingsPage
                     </tr>
                 </table>
 
-                <button type="submit" class="button button-primary">دانلود خروجی</button>
+                <p>
+                    <button type="submit" class="button button-primary">
+                        دانلود خروجی CSV
+                    </button>
+                </p>
+            </form>
+
+            <hr>
+
+            <!-- فرم ایمپورت (Import) -->
+            <h2>ایمپورت CSV و بروزرسانی محصولات</h2>
+            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" enctype="multipart/form-data">
+                <?php wp_nonce_field('wppe_import_products', 'wppe_import_nonce'); ?>
+                <input type="hidden" name="action" value="wppe_import_products">
+
+                <table class="form-table">
+                    <tr>
+                        <th><label>فایل CSV خروجی ویرایش‌شده</label></th>
+                        <td>
+                            <input type="file" name="wppe_import_file" accept=".csv">
+                        </td>
+                    </tr>
+                </table>
+
+                <p>
+                    <button type="submit" class="button button-secondary">
+                        ایمپورت و بروزرسانی محصولات
+                    </button>
+                </p>
             </form>
         </div>
         <?php

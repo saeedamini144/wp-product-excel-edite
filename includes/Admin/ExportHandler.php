@@ -24,7 +24,6 @@ class ExportHandler
 
         $category_id = isset($_POST['product_category']) ? intval($_POST['product_category']) : 0;
 
-        // گرفتن محصولات (همه یا دسته خاص)
         $products = ProductQuery::get_products($category_id);
 
         if (empty($products)) {

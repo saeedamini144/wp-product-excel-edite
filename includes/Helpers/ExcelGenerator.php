@@ -10,24 +10,17 @@ if (!defined('ABSPATH')) {
 
 class ExcelGenerator
 {
-    /**
-     * خروجی CSV سازگار با اکسل و زبان فارسی
-     * شامل BOM UTF-8 برای جلوگیری از به‌هم‌ریختگی متن
-     * جلوگیری از Scientific Notation برای SKU
-     */
     public static function output_csv(array $products)
     {
-        // هدرهای دانلود فایل
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename=products.csv');
 
-        // خروجی به مرورگر
         $output = fopen('php://output', 'w');
 
-        // اضافه کردن BOM برای جلوگیری از خراب شدن فارسی
+        // BOM برای جلوگیری از خراب شدن فارسی
         fwrite($output, "\xEF\xBB\xBF");
 
-        // هدرهای فایل CSV مطابق فایل نمونه
+        // هدرهای فایل CSV
         fputcsv($output, [
             'آیدی',
             'نام محصول',
@@ -39,27 +32,102 @@ class ExcelGenerator
             'وضعیت موجودی'
         ]);
 
-        /** @var Product $p */
         foreach ($products as $p) {
 
-            // جلوگیری از Scientific Notation برای SKU
-            // با اضافه کردن یک تک‌کوتیشن قبل از مقدار
-            // $sku = "'" . $p->get_sku();
+            $wc_product = wc_get_product($p->get_id());
 
-            // تاریخ پایان فروش ویژه به صورت Y-m-d
-            $sale_end_date = $p->get_sale_end_date() ?: '';
+            /*
+            |--------------------------------------------------------------------------
+            | محصولات ساده
+            |--------------------------------------------------------------------------
+            */
+            if ($wc_product->is_type('simple')) {
 
-            fputcsv($output, [
-                $p->get_id(),
-                $p->get_name(),
-                // $sku,
-                $p->get_sku(),
-                $p->get_regular_price(),
-                $p->get_sale_price(),
-                $sale_end_date,
-                $p->get_stock_quantity(),
-                $p->get_stock_status(),
-            ]);
+                $sale_end_date = $p->get_sale_end_date() ?: '';
+
+                fputcsv($output, [
+                    $p->get_id(),
+                    $p->get_name(),
+                    $p->get_sku(),
+                    $p->get_regular_price(),
+                    $p->get_sale_price(),
+                    $sale_end_date,
+                    $p->get_stock_quantity(),
+                    $p->get_stock_status(),
+                ]);
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | محصولات متغیر
+            |--------------------------------------------------------------------------
+            */
+            if ($wc_product->is_type('variable')) {
+
+                $variations = $wc_product->get_children();
+
+                foreach ($variations as $variation_id) {
+
+                    $variation = wc_get_product($variation_id);
+                    if (!$variation) continue;
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | استخراج ویژگی‌ها (فقط مقدار ویژگی، بدون لیبل)
+                    |--------------------------------------------------------------------------
+                    */
+                    $attr_parts = [];
+
+                    $raw_attributes = $variation->get_attributes();
+
+                    foreach ($raw_attributes as $taxonomy => $slug_value) {
+
+                        // مقدار ویژگی (label واقعی term)
+                        $terms = wc_get_product_terms(
+                            $variation_id,
+                            $taxonomy,
+                            ['fields' => 'names']
+                        );
+
+                        if (!empty($terms)) {
+                            $value_label = $terms[0]; // مثلاً "مشکی" یا "سایز-36"
+                        } else {
+                            // اگر term پیدا نشد → decode slug
+                            $value_label = urldecode($slug_value);
+                        }
+
+                        // فقط مقدار ویژگی در خروجی
+                        $attr_parts[] = $value_label;
+                    }
+
+                    // نام نهایی Variation
+                    $variation_name = $p->get_name() . ' - ' . implode(', ', $attr_parts);
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | تاریخ تخفیف
+                    |--------------------------------------------------------------------------
+                    */
+                    $date_to = $variation->get_date_on_sale_to();
+                    $sale_end_date = $date_to ? $date_to->date('Y-m-d') : '';
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | خروجی نهایی Variation
+                    |--------------------------------------------------------------------------
+                    */
+                    fputcsv($output, [
+                        $variation_id,
+                        $variation_name,
+                        $variation->get_sku(),
+                        $variation->get_regular_price(),
+                        $variation->get_sale_price(),
+                        $sale_end_date,
+                        $variation->get_stock_quantity(),
+                        $variation->get_stock_status(),
+                    ]);
+                }
+            }
         }
 
         fclose($output);
