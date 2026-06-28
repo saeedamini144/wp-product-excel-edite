@@ -35,7 +35,7 @@ class SettingsPage
             <h1>مدیریت اکسل محصولات</h1>
 
             <!-- فرم خروجی (Export) -->
-            <h2>خروجی CSV محصولات</h2>
+            <h2>خروجی Xlsx محصولات</h2>
             <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
                 <?php wp_nonce_field('wppe_export_products', 'wppe_nonce'); ?>
                 <input type="hidden" name="action" value="wppe_export_products">
@@ -59,7 +59,7 @@ class SettingsPage
 
                 <p>
                     <button type="submit" class="button button-primary">
-                        دانلود خروجی CSV
+                        دانلود خروجی Xlsx
                     </button>
                 </p>
             </form>
@@ -67,16 +67,16 @@ class SettingsPage
             <hr>
 
             <!-- فرم ایمپورت (Import) -->
-            <h2>ایمپورت CSV و بروزرسانی محصولات</h2>
+            <h2>ایمپورت Xlsx و بروزرسانی محصولات</h2>
             <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" enctype="multipart/form-data">
                 <?php wp_nonce_field('wppe_import_products', 'wppe_import_nonce'); ?>
                 <input type="hidden" name="action" value="wppe_import_products">
 
                 <table class="form-table">
                     <tr>
-                        <th><label>فایل CSV خروجی ویرایش‌شده</label></th>
+                        <th><label>فایل Xlsx خروجی ویرایش‌شده</label></th>
                         <td>
-                            <input type="file" name="wppe_import_file" accept=".csv">
+                            <input type="file" name="wppe_import_file" accept=".xlsx, .xls">
                         </td>
                     </tr>
                 </table>

@@ -18,6 +18,9 @@ class Init
 
     private static function load_dependencies()
     {
+        // لود کردن autoload از پوشه اصلی پلاگین
+        require_once dirname(__DIR__) . '/vendor/autoload.php';
+
         require_once __DIR__ . '/Admin/SettingsPage.php';
         require_once __DIR__ . '/Admin/ExportHandler.php';
         require_once __DIR__ . '/Admin/ImportHandler.php';
@@ -26,7 +29,5 @@ class Init
         require_once __DIR__ . '/Helpers/ExcelGenerator.php';
 
         require_once __DIR__ . '/Models/Product.php';
-        require_once __DIR__ . '/vendor/autoload.php';
-
     }
 }
