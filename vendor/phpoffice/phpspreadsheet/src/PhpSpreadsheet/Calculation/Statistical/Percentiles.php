@@ -4,7 +4,6 @@ namespace PhpOffice\PhpSpreadsheet\Calculation\Statistical;
 
 use PhpOffice\PhpSpreadsheet\Calculation\Exception;
 use PhpOffice\PhpSpreadsheet\Calculation\Functions;
-use PhpOffice\PhpSpreadsheet\Calculation\Information\ExcelError;
 
 class Percentiles
 {
@@ -24,7 +23,7 @@ class Percentiles
      *
      * @return float|string The result, or a string containing an error
      */
-    public static function PERCENTILE(mixed ...$args)
+    public static function PERCENTILE(...$args)
     {
         $aArgs = Functions::flattenArray($args);
 
@@ -38,20 +37,18 @@ class Percentiles
         }
 
         if (($entry < 0) || ($entry > 1)) {
-            return ExcelError::NAN();
+            return Functions::NAN();
         }
 
         $mArgs = self::percentileFilterValues($aArgs);
         $mValueCount = count($mArgs);
         if ($mValueCount > 0) {
             sort($mArgs);
-            /** @var float[] $mArgs */
             $count = Counts::COUNT($mArgs);
             $index = $entry * ($count - 1);
-            $indexFloor = floor($index);
-            $iBase = (int) $indexFloor;
-            if ($index == $indexFloor) {
-                return $mArgs[$iBase];
+            $iBase = floor($index);
+            if ($index == $iBase) {
+                return $mArgs[$index];
             }
             $iNext = $iBase + 1;
             $iProportion = $index - $iBase;
@@ -59,7 +56,7 @@ class Percentiles
             return $mArgs[$iBase] + (($mArgs[$iNext] - $mArgs[$iBase]) * $iProportion);
         }
 
-        return ExcelError::NAN();
+        return Functions::NAN();
     }
 
     /**
@@ -76,7 +73,7 @@ class Percentiles
      *
      * @return float|string (string if result is an error)
      */
-    public static function PERCENTRANK(mixed $valueSet, mixed $value, mixed $significance = 3): string|float
+    public static function PERCENTRANK($valueSet, $value, $significance = 3)
     {
         $valueSet = Functions::flattenArray($valueSet);
         $value = Functions::flattenSingleValue($value);
@@ -89,22 +86,20 @@ class Percentiles
             return $e->getMessage();
         }
 
-        /** @var array<float|int|numeric-string> */
         $valueSet = self::rankFilterValues($valueSet);
         $valueCount = count($valueSet);
         if ($valueCount == 0) {
-            return ExcelError::NA();
+            return Functions::NA();
         }
         sort($valueSet, SORT_NUMERIC);
 
         $valueAdjustor = $valueCount - 1;
         if (($value < $valueSet[0]) || ($value > $valueSet[$valueAdjustor])) {
-            return ExcelError::NA();
+            return Functions::NA();
         }
 
         $pos = array_search($value, $valueSet);
         if ($pos === false) {
-            /** @var float[] $valueSet */
             $pos = 0;
             $testValue = $valueSet[0];
             while ($testValue < $value) {
@@ -114,7 +109,7 @@ class Percentiles
             $pos += (($value - $valueSet[$pos]) / ($testValue - $valueSet[$pos]));
         }
 
-        return round(((float) $pos) / $valueAdjustor, $significance);
+        return round($pos / $valueAdjustor, $significance);
     }
 
     /**
@@ -129,7 +124,7 @@ class Percentiles
      *
      * @return float|string The result, or a string containing an error
      */
-    public static function QUARTILE(mixed ...$args)
+    public static function QUARTILE(...$args)
     {
         $aArgs = Functions::flattenArray($args);
         $entry = array_pop($aArgs);
@@ -143,7 +138,7 @@ class Percentiles
         $entry = floor($entry);
         $entry /= 4;
         if (($entry < 0) || ($entry > 1)) {
-            return ExcelError::NAN();
+            return Functions::NAN();
         }
 
         return self::PERCENTILE($aArgs, $entry);
@@ -160,7 +155,7 @@ class Percentiles
      *
      * @return float|string The result, or a string containing an error (0 = Descending, 1 = Ascending)
      */
-    public static function RANK(mixed $value, mixed $valueSet, mixed $order = self::RANK_SORT_DESCENDING)
+    public static function RANK($value, $valueSet, $order = self::RANK_SORT_DESCENDING)
     {
         $value = Functions::flattenSingleValue($value);
         $valueSet = Functions::flattenArray($valueSet);
@@ -173,7 +168,6 @@ class Percentiles
             return $e->getMessage();
         }
 
-        /** @var array<float|int|numeric-string> */
         $valueSet = self::rankFilterValues($valueSet);
         if ($order === self::RANK_SORT_DESCENDING) {
             rsort($valueSet, SORT_NUMERIC);
@@ -183,35 +177,29 @@ class Percentiles
 
         $pos = array_search($value, $valueSet);
         if ($pos === false) {
-            return ExcelError::NA();
+            return Functions::NA();
         }
 
         return ++$pos;
     }
 
-    /**
-     * @param mixed[] $dataSet
-     *
-     * @return mixed[]
-     */
-    protected static function percentileFilterValues(array $dataSet): array
+    protected static function percentileFilterValues(array $dataSet)
     {
         return array_filter(
             $dataSet,
-            fn ($value): bool => is_numeric($value) && !is_string($value)
+            function ($value): bool {
+                return is_numeric($value) && !is_string($value);
+            }
         );
     }
 
-    /**
-     * @param mixed[] $dataSet
-     *
-     * @return mixed[]
-     */
-    protected static function rankFilterValues(array $dataSet): array
+    protected static function rankFilterValues(array $dataSet)
     {
         return array_filter(
             $dataSet,
-            fn ($value): bool => is_numeric($value)
+            function ($value): bool {
+                return is_numeric($value);
+            }
         );
     }
 }

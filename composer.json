@@ -1,5 +1,14 @@
 {
+    "name": "wppe/product-excel-exporter",
+    "description": "WooCommerce Product Excel Exporter & Importer",
+    "type": "wordpress-plugin",
     "require": {
-        "phpoffice/phpspreadsheet": "^5.8"
+        "php": ">=7.4",
+        "phpoffice/phpspreadsheet": "1.19"
+    },
+    "autoload": {
+        "psr-4": {
+            "WPPE\\": "includes/"
+        }
     }
 }

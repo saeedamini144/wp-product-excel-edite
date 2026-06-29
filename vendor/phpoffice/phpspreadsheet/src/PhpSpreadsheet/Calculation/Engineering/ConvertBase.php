@@ -2,21 +2,16 @@
 
 namespace PhpOffice\PhpSpreadsheet\Calculation\Engineering;
 
-use PhpOffice\PhpSpreadsheet\Calculation\ArrayEnabled;
 use PhpOffice\PhpSpreadsheet\Calculation\Exception;
 use PhpOffice\PhpSpreadsheet\Calculation\Functions;
-use PhpOffice\PhpSpreadsheet\Calculation\Information\ExcelError;
-use PhpOffice\PhpSpreadsheet\Shared\StringHelper;
 
-abstract class ConvertBase
+class ConvertBase
 {
-    use ArrayEnabled;
-
-    protected static function validateValue(mixed $value): string
+    protected static function validateValue($value): string
     {
         if (is_bool($value)) {
             if (Functions::getCompatibilityMode() !== Functions::COMPATIBILITY_OPENOFFICE) {
-                throw new Exception(ExcelError::VALUE());
+                throw new Exception(Functions::VALUE());
             }
             $value = (int) $value;
         }
@@ -27,10 +22,10 @@ abstract class ConvertBase
             }
         }
 
-        return strtoupper(StringHelper::convertToString($value));
+        return strtoupper((string) $value);
     }
 
-    protected static function validatePlaces(mixed $places = null): ?int
+    protected static function validatePlaces($places = null): ?int
     {
         if ($places === null) {
             return $places;
@@ -38,13 +33,13 @@ abstract class ConvertBase
 
         if (is_numeric($places)) {
             if ($places < 0 || $places > 10) {
-                throw new Exception(ExcelError::NAN());
+                throw new Exception(Functions::NAN());
             }
 
             return (int) $places;
         }
 
-        throw new Exception(ExcelError::VALUE());
+        throw new Exception(Functions::VALUE());
     }
 
     /**
@@ -62,7 +57,7 @@ abstract class ConvertBase
                 return substr(str_pad($value, $places, '0', STR_PAD_LEFT), -10);
             }
 
-            return ExcelError::NAN();
+            return Functions::NAN();
         }
 
         return substr($value, -10);

@@ -2,160 +2,107 @@
 
 namespace PhpOffice\PhpSpreadsheet\Reader;
 
-use PhpOffice\PhpSpreadsheet\Cell\IValueBinder;
-use PhpOffice\PhpSpreadsheet\Exception as PhpSpreadsheetException;
 use PhpOffice\PhpSpreadsheet\Reader\Exception as ReaderException;
 use PhpOffice\PhpSpreadsheet\Reader\Security\XmlScanner;
 use PhpOffice\PhpSpreadsheet\Shared\File;
-use PhpOffice\PhpSpreadsheet\Spreadsheet;
 
-abstract class BaseReader implements IReader2
+abstract class BaseReader implements IReader
 {
     /**
      * Read data only?
      * Identifies whether the Reader should only read data values for cells, and ignore any formatting information;
      *        or whether it should read both data and formatting.
+     *
+     * @var bool
      */
-    protected bool $readDataOnly = false;
+    protected $readDataOnly = false;
 
     /**
      * Read empty cells?
-     * Identifies whether the Reader should read data values for all cells, or should ignore cells containing
+     * Identifies whether the Reader should read data values for cells all cells, or should ignore cells containing
      *         null value or empty string.
+     *
+     * @var bool
      */
-    protected bool $readEmptyCells = true;
+    protected $readEmptyCells = true;
 
     /**
      * Read charts that are defined in the workbook?
      * Identifies whether the Reader should read the definitions for any charts that exist in the workbook;.
+     *
+     * @var bool
      */
-    protected bool $includeCharts = false;
+    protected $includeCharts = false;
 
     /**
      * Restrict which sheets should be loaded?
      * This property holds an array of worksheet names to be loaded. If null, then all worksheets will be loaded.
-     * This property is ignored for Csv, Html, and Slk.
      *
      * @var null|string[]
      */
-    protected ?array $loadSheetsOnly = null;
-
-    /**
-     * Ignore rows with no cells?
-     * Identifies whether the Reader should ignore rows with no cells.
-     *        Currently implemented only for Xlsx.
-     */
-    protected bool $ignoreRowsWithNoCells = false;
-
-    /**
-     * Allow external images. Use with caution.
-     * Improper specification of these within a spreadsheet
-     * can subject the caller to security exploits.
-     */
-    protected bool $allowExternalImages = false;
-
-    /**
-     * Create a blank sheet if none are read,
-     * possibly due to a typo when using LoadSheetsOnly.
-     */
-    protected bool $createBlankSheetIfNoneRead = false;
-
-    /**
-     * Enable drawing pass-through?
-     * Identifies whether the Reader should preserve unsupported drawing elements (shapes, grouped images, etc.)
-     * by storing the original XML for pass-through during write operations.
-     * When enabled, drawings cannot be modified programmatically but are preserved exactly.
-     */
-    protected bool $enableDrawingPassThrough = false;
+    protected $loadSheetsOnly;
 
     /**
      * IReadFilter instance.
+     *
+     * @var IReadFilter
      */
-    protected IReadFilter $readFilter;
+    protected $readFilter;
 
-    /** @var resource */
     protected $fileHandle;
 
-    protected ?XmlScanner $securityScanner = null;
-
-    protected ?IValueBinder $valueBinder = null;
-
-    /** @var null|callable(string):bool function to return whether image path is okay */
-    protected $isWhitelisted;
+    /**
+     * @var XmlScanner
+     */
+    protected $securityScanner;
 
     public function __construct()
     {
         $this->readFilter = new DefaultReadFilter();
     }
 
-    public function getReadDataOnly(): bool
+    public function getReadDataOnly()
     {
         return $this->readDataOnly;
     }
 
-    public function setReadDataOnly(bool $readCellValuesOnly): static
+    public function setReadDataOnly($readCellValuesOnly)
     {
-        $this->readDataOnly = $readCellValuesOnly;
+        $this->readDataOnly = (bool) $readCellValuesOnly;
 
         return $this;
     }
 
-    public function getReadEmptyCells(): bool
+    public function getReadEmptyCells()
     {
         return $this->readEmptyCells;
     }
 
-    public function setReadEmptyCells(bool $readEmptyCells): static
+    public function setReadEmptyCells($readEmptyCells)
     {
-        $this->readEmptyCells = $readEmptyCells;
+        $this->readEmptyCells = (bool) $readEmptyCells;
 
         return $this;
     }
 
-    public function getIgnoreRowsWithNoCells(): bool
-    {
-        return $this->ignoreRowsWithNoCells;
-    }
-
-    public function setIgnoreRowsWithNoCells(bool $ignoreRowsWithNoCells): static
-    {
-        $this->ignoreRowsWithNoCells = $ignoreRowsWithNoCells;
-
-        return $this;
-    }
-
-    public function getIncludeCharts(): bool
+    public function getIncludeCharts()
     {
         return $this->includeCharts;
     }
 
-    public function setIncludeCharts(bool $includeCharts): static
+    public function setIncludeCharts($includeCharts)
     {
-        $this->includeCharts = $includeCharts;
+        $this->includeCharts = (bool) $includeCharts;
 
         return $this;
     }
 
-    public function getEnableDrawingPassThrough(): bool
-    {
-        return $this->enableDrawingPassThrough;
-    }
-
-    public function setEnableDrawingPassThrough(bool $enableDrawingPassThrough): static
-    {
-        $this->enableDrawingPassThrough = $enableDrawingPassThrough;
-
-        return $this;
-    }
-
-    /** @return null|string[] */
-    public function getLoadSheetsOnly(): ?array
+    public function getLoadSheetsOnly()
     {
         return $this->loadSheetsOnly;
     }
 
-    /** @param null|string|string[] $sheetList */
-    public function setLoadSheetsOnly(string|array|null $sheetList): static
+    public function setLoadSheetsOnly($sheetList)
     {
         if ($sheetList === null) {
             return $this->setLoadAllSheets();
@@ -166,81 +113,27 @@ abstract class BaseReader implements IReader2
         return $this;
     }
 
-    public function setLoadAllSheets(): static
+    public function setLoadAllSheets()
     {
         $this->loadSheetsOnly = null;
 
         return $this;
     }
 
-    public function getReadFilter(): IReadFilter
+    public function getReadFilter()
     {
         return $this->readFilter;
     }
 
-    public function setReadFilter(IReadFilter $readFilter): static
+    public function setReadFilter(IReadFilter $readFilter)
     {
         $this->readFilter = $readFilter;
 
         return $this;
     }
 
-    /**
-     * USE WITH CAUTION (and in conjunction with setIsWhiteListed)!
-     * Allow external images;
-     * these can be specified within a spreadsheet
-     * in a way that can subject the caller to security exploits.
-     */
-    public function setAllowExternalImages(bool $allowExternalImages): static
+    public function getSecurityScanner()
     {
-        $this->allowExternalImages = $allowExternalImages;
-
-        return $this;
-    }
-
-    public function getAllowExternalImages(): bool
-    {
-        return $this->allowExternalImages;
-    }
-
-    /**
-     * USE WITH CAUTION!
-     * Supply a callback to determine whether a path should be whitelisted,
-     * used in conjunction with setAllowExternalImages;
-     * supplying a method which might return true
-     * can subject the caller to security exploits.
-     *
-     * @param callable(string):bool $isWhitelisted
-     */
-    public function setIsWhitelisted(callable $isWhitelisted): static
-    {
-        $this->isWhitelisted = $isWhitelisted;
-
-        return $this;
-    }
-
-    /**
-     * Create a blank sheet if none are read,
-     * possibly due to a typo when using LoadSheetsOnly.
-     */
-    public function setCreateBlankSheetIfNoneRead(bool $createBlankSheetIfNoneRead): static
-    {
-        $this->createBlankSheetIfNoneRead = $createBlankSheetIfNoneRead;
-
-        return $this;
-    }
-
-    public function getSecurityScanner(): ?XmlScanner
-    {
-        return $this->securityScanner;
-    }
-
-    public function getSecurityScannerOrThrow(): XmlScanner
-    {
-        if ($this->securityScanner === null) {
-            throw new ReaderException('Security scanner is unexpectedly null');
-        }
-
         return $this->securityScanner;
     }
 
@@ -249,111 +142,27 @@ abstract class BaseReader implements IReader2
         if (((bool) ($flags & self::LOAD_WITH_CHARTS)) === true) {
             $this->setIncludeCharts(true);
         }
-        if (((bool) ($flags & self::READ_DATA_ONLY)) === true) {
-            $this->setReadDataOnly(true);
-        }
-        if (((bool) ($flags & self::IGNORE_EMPTY_CELLS)) === true) {
-            $this->setReadEmptyCells(false);
-        }
-        if (((bool) ($flags & self::IGNORE_ROWS_WITH_NO_CELLS)) === true) {
-            $this->setIgnoreRowsWithNoCells(true);
-        }
-        if (((bool) ($flags & self::ALLOW_EXTERNAL_IMAGES)) === true) {
-            $this->setAllowExternalImages(true);
-        }
-        if (((bool) ($flags & self::DONT_ALLOW_EXTERNAL_IMAGES)) === true) {
-            $this->setAllowExternalImages(false);
-        }
-        if (((bool) ($flags & self::CREATE_BLANK_SHEET_IF_NONE_READ)) === true) {
-            $this->setCreateBlankSheetIfNoneRead(true);
-        }
-    }
-
-    protected function loadSpreadsheetFromFile(string $filename): Spreadsheet
-    {
-        throw new PhpSpreadsheetException('Reader classes must implement their own loadSpreadsheetFromFile() method');
-    }
-
-    /**
-     * Loads Spreadsheet from file.
-     *
-     * @param int $flags the optional second parameter flags may be used to identify specific elements
-     *                       that should be loaded, but which won't be loaded by default, using these values:
-     *                            IReader::LOAD_WITH_CHARTS - Include any charts that are defined in the loaded file
-     */
-    public function load(string $filename, int $flags = 0): Spreadsheet
-    {
-        $this->processFlags($flags);
-
-        try {
-            return $this->loadSpreadsheetFromFile($filename);
-        } catch (ReaderException $e) {
-            throw $e;
-        }
     }
 
     /**
      * Open file for reading.
+     *
+     * @param string $filename
      */
-    protected function openFile(string $filename): void
+    protected function openFile($filename): void
     {
-        $fileHandle = false;
         if ($filename) {
             File::assertFile($filename);
 
             // Open file
             $fileHandle = fopen($filename, 'rb');
+        } else {
+            $fileHandle = false;
         }
-        if ($fileHandle === false) {
+        if ($fileHandle !== false) {
+            $this->fileHandle = $fileHandle;
+        } else {
             throw new ReaderException('Could not open file ' . $filename . ' for reading.');
         }
-
-        $this->fileHandle = $fileHandle;
-    }
-
-    /**
-     * Return worksheet info (Name, Last Column Letter, Last Column Index, Total Rows, Total Columns).
-     *
-     * @return array<int, array{worksheetName: string, lastColumnLetter: string, lastColumnIndex: int, totalRows: int, totalColumns: int, sheetState: string}>
-     */
-    public function listWorksheetInfo(string $filename): array
-    {
-        throw new PhpSpreadsheetException('Reader classes must implement their own listWorksheetInfo() method');
-    }
-
-    /**
-     * Returns names of the worksheets from a file,
-     * possibly without parsing the whole file to a Spreadsheet object.
-     * Readers will often have a more efficient method with which
-     * they can override this method.
-     *
-     * @return string[]
-     */
-    public function listWorksheetNames(string $filename): array
-    {
-        $returnArray = [];
-        $info = $this->listWorksheetInfo($filename);
-        foreach ($info as $infoArray) {
-            $returnArray[] = $infoArray['worksheetName'];
-        }
-
-        return $returnArray;
-    }
-
-    public function getValueBinder(): ?IValueBinder
-    {
-        return $this->valueBinder;
-    }
-
-    public function setValueBinder(?IValueBinder $valueBinder): static
-    {
-        $this->valueBinder = $valueBinder;
-
-        return $this;
-    }
-
-    protected function newSpreadsheet(): Spreadsheet
-    {
-        return new Spreadsheet();
     }
 }

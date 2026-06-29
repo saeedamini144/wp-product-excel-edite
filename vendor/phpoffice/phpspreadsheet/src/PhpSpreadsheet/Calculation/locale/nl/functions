@@ -38,7 +38,6 @@ DVARP = DBVARP
 ## Datum- en tijdfuncties (Date & Time Functions)
 ##
 DATE = DATUM
-DATEDIF = DATUMVERSCHIL
 DATESTRING = DATUMNOTATIE
 DATEVALUE = DATUMWAARDE
 DAY = DAG
@@ -245,7 +244,6 @@ ROWS = RIJEN
 RTD = RTG
 TRANSPOSE = TRANSPONEREN
 VLOOKUP = VERT.ZOEKEN
-*RC = RK
 
 ##
 ## Wiskundige en trigonometrische functies (Math & Trig Functions)

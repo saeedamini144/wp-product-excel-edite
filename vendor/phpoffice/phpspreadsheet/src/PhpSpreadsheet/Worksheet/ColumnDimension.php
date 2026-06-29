@@ -2,39 +2,42 @@
 
 namespace PhpOffice\PhpSpreadsheet\Worksheet;
 
-use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Helper\Dimension as CssDimension;
 
 class ColumnDimension extends Dimension
 {
-    public const EXCEL_MAX_WIDTH = 255.0;
-
     /**
      * Column index.
+     *
+     * @var string
      */
-    private ?string $columnIndex;
+    private $columnIndex;
 
     /**
      * Column width.
      *
      * When this is set to a negative value, the column width should be ignored by IWriter
+     *
+     * @var float
      */
-    private float $width = -1;
+    private $width = -1;
 
     /**
      * Auto size?
+     *
+     * @var bool
      */
-    private bool $autoSize = false;
+    private $autoSize = false;
 
     /**
      * Create a new ColumnDimension.
      *
-     * @param ?string $index Character column index
+     * @param string $pIndex Character column index
      */
-    public function __construct(?string $index = 'A')
+    public function __construct($pIndex = 'A')
     {
         // Initialise values
-        $this->columnIndex = $index;
+        $this->columnIndex = $pIndex;
 
         // set dimension as unformatted by default
         parent::__construct(0);
@@ -43,15 +46,17 @@ class ColumnDimension extends Dimension
     /**
      * Get column index as string eg: 'A'.
      */
-    public function getColumnIndex(): ?string
+    public function getColumnIndex(): string
     {
         return $this->columnIndex;
     }
 
     /**
      * Set column index as string eg: 'A'.
+     *
+     * @return $this
      */
-    public function setColumnIndex(string $index): self
+    public function setColumnIndex(string $index)
     {
         $this->columnIndex = $index;
 
@@ -59,30 +64,11 @@ class ColumnDimension extends Dimension
     }
 
     /**
-     * Get column index as numeric.
-     */
-    public function getColumnNumeric(): int
-    {
-        return Coordinate::columnIndexFromString($this->columnIndex ?? '');
-    }
-
-    /**
-     * Set column index as numeric.
-     */
-    public function setColumnNumeric(int $index): self
-    {
-        $this->columnIndex = Coordinate::stringFromColumnIndex($index);
-
-        return $this;
-    }
-
-    /**
      * Get Width.
      *
-     * Each unit of column width is equal to the width of one character in the default font size. A value of -1
-     *      tells Excel to display this column in its default width.
-     * By default, this will be the return value; but this method also accepts an optional unit of measure argument
-     *    and will convert the returned value to the specified UoM..
+     * Each unit of column width is equal to the width of one character in the default font size.
+     * By default, this will be the return value; but this method also accepts a unit of measure argument and will
+     *     return the value converted to the specified UoM using an approximation method.
      */
     public function getWidth(?string $unitOfMeasure = null): float
     {
@@ -91,23 +77,16 @@ class ColumnDimension extends Dimension
             : (new CssDimension((string) $this->width))->toUnit($unitOfMeasure);
     }
 
-    public function getWidthForOutput(bool $restrictMax): float
-    {
-        return ($restrictMax && $this->width > self::EXCEL_MAX_WIDTH) ? self::EXCEL_MAX_WIDTH : $this->width;
-    }
-
     /**
      * Set Width.
      *
-     * Each unit of column width is equal to the width of one character in the default font size. A value of -1
-     *      tells Excel to display this column in its default width.
-     * By default, this will be the unit of measure for the passed value; but this method also accepts an
-     *    optional unit of measure argument, and will convert the value from the specified UoM using an
-     *    approximation method.
+     * Each unit of column width is equal to the width of one character in the default font size.
+     * By default, this will be the unit of measure for the passed value; but this method accepts a unit of measure
+     *    argument, and will convert the value from the specified UoM using an approximation method.
      *
      * @return $this
      */
-    public function setWidth(float $width, ?string $unitOfMeasure = null): static
+    public function setWidth(float $width, ?string $unitOfMeasure = null)
     {
         $this->width = ($unitOfMeasure === null || $width < 0)
             ? $width
@@ -129,7 +108,7 @@ class ColumnDimension extends Dimension
      *
      * @return $this
      */
-    public function setAutoSize(bool $autosizeEnabled): static
+    public function setAutoSize(bool $autosizeEnabled)
     {
         $this->autoSize = $autosizeEnabled;
 

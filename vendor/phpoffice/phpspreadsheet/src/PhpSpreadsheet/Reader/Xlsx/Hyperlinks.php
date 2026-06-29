@@ -9,10 +9,9 @@ use SimpleXMLElement;
 
 class Hyperlinks
 {
-    private Worksheet $worksheet;
+    private $worksheet;
 
-    /** @var string[] */
-    private array $hyperlinks = [];
+    private $hyperlinks = [];
 
     public function __construct(Worksheet $workSheet)
     {
@@ -32,7 +31,9 @@ class Hyperlinks
     public function setHyperlinks(SimpleXMLElement $worksheetXml): void
     {
         foreach ($worksheetXml->children(Namespaces::MAIN)->hyperlink as $hyperlink) {
-            $this->setHyperlink($hyperlink, $this->worksheet);
+            if ($hyperlink !== null) {
+                $this->setHyperlink($hyperlink, $this->worksheet);
+            }
         }
     }
 
@@ -44,26 +45,19 @@ class Hyperlinks
         $attributes = Xlsx::getAttributes($hyperlink);
         foreach (Coordinate::extractAllCellReferencesInRange($attributes->ref) as $cellReference) {
             $cell = $worksheet->getCell($cellReference);
-
-            $hyperlinkUrl = '';
             if (isset($linkRel['id'])) {
-                $hyperlinkUrl = $this->hyperlinks[(string) $linkRel['id']] ?? '';
-            }
-            if (isset($attributes['location'])) {
-                if ($hyperlinkUrl === '') {
-                    $hyperlinkUrl = 'sheet://' . (string) $attributes['location'];
-                } else {
-                    $hyperlinkUrl .= '#' . (string) $attributes['location'];
+                $hyperlinkUrl = $this->hyperlinks[(string) $linkRel['id']] ?? null;
+                if (isset($hyperlink['location'])) {
+                    $hyperlinkUrl .= '#' . (string) $hyperlink['location'];
                 }
-            }
-            $cell->getHyperlink()->setUrl($hyperlinkUrl);
-            // Tooltip
-            if (isset($attributes['tooltip'])) {
-                $cell->getHyperlink()->setTooltip((string) $attributes['tooltip']);
+                $cell->getHyperlink()->setUrl($hyperlinkUrl);
+            } elseif (isset($hyperlink['location'])) {
+                $cell->getHyperlink()->setUrl('sheet://' . (string) $hyperlink['location']);
             }
 
-            if (isset($attributes['display'])) {
-                $cell->getHyperlink()->setDisplay((string) $attributes['display']);
+            // Tooltip
+            if (isset($hyperlink['tooltip'])) {
+                $cell->getHyperlink()->setTooltip((string) $hyperlink['tooltip']);
             }
         }
     }

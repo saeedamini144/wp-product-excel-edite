@@ -3,7 +3,6 @@
 namespace PhpOffice\PhpSpreadsheet\Calculation\Statistical;
 
 use PhpOffice\PhpSpreadsheet\Calculation\Functions;
-use PhpOffice\PhpSpreadsheet\Calculation\Information\ExcelError;
 
 class Size
 {
@@ -20,7 +19,7 @@ class Size
      *
      * @return float|string The result, or a string containing an error
      */
-    public static function large(mixed ...$args)
+    public static function large(...$args)
     {
         $aArgs = Functions::flattenArray($args);
         $entry = array_pop($aArgs);
@@ -31,16 +30,15 @@ class Size
             $mArgs = self::filter($aArgs);
             $count = Counts::COUNT($mArgs);
             --$entry;
-            if ($count === 0 || $entry < 0 || $entry >= $count) {
-                return ExcelError::NAN();
+            if (($entry < 0) || ($entry >= $count) || ($count == 0)) {
+                return Functions::NAN();
             }
             rsort($mArgs);
-            /** @var float[] $mArgs */
 
             return $mArgs[$entry];
         }
 
-        return ExcelError::VALUE();
+        return Functions::VALUE();
     }
 
     /**
@@ -56,7 +54,7 @@ class Size
      *
      * @return float|string The result, or a string containing an error
      */
-    public static function small(mixed ...$args)
+    public static function small(...$args)
     {
         $aArgs = Functions::flattenArray($args);
 
@@ -68,22 +66,19 @@ class Size
             $mArgs = self::filter($aArgs);
             $count = Counts::COUNT($mArgs);
             --$entry;
-            if ($count === 0 || $entry < 0 || $entry >= $count) {
-                return ExcelError::NAN();
+            if (($entry < 0) || ($entry >= $count) || ($count == 0)) {
+                return Functions::NAN();
             }
             sort($mArgs);
-            /** @var float[] $mArgs */
 
             return $mArgs[$entry];
         }
 
-        return ExcelError::VALUE();
+        return Functions::VALUE();
     }
 
     /**
      * @param mixed[] $args Data values
-     *
-     * @return mixed[]
      */
     protected static function filter(array $args): array
     {

@@ -2,7 +2,6 @@
 
 namespace PhpOffice\PhpSpreadsheet\Shared;
 
-use Composer\Pcre\Preg;
 use PhpOffice\PhpSpreadsheet\Exception;
 use PhpOffice\PhpSpreadsheet\Reader\Exception as ReaderException;
 use ZipArchive;
@@ -11,8 +10,10 @@ class File
 {
     /**
      * Use Temp or File Upload Temp for temporary files.
+     *
+     * @var bool
      */
-    protected static bool $useUploadTempDirectory = false;
+    protected static $useUploadTempDirectory = false;
 
     /**
      * Set the flag indicating whether the File Upload Temp directory should be used for temporary files.
@@ -55,12 +56,12 @@ class File
         // doing the original file_exists on ZIP archives...
         if (strtolower(substr($filename, 0, 6)) == 'zip://') {
             // Open ZIP file and verify if the file exists
-            $zipFile = substr($filename, 6, strrpos($filename, '#') - 6);
-            $archiveFile = substr($filename, strrpos($filename, '#') + 1);
+            $zipFile = substr($filename, 6, strpos($filename, '#') - 6);
+            $archiveFile = substr($filename, strpos($filename, '#') + 1);
 
             if (self::validateZipFirst4($zipFile)) {
                 $zip = new ZipArchive();
-                $res = $zip->open($zipFile);
+                $res = $zip->open($zipFile, ZipArchive::CHECKCONS);
                 if ($res === true) {
                     $returnValue = ($zip->getFromName($archiveFile) !== false);
                     $zip->close();
@@ -93,9 +94,9 @@ class File
             $pathArray = explode('/', $filename);
             while (in_array('..', $pathArray) && $pathArray[0] != '..') {
                 $iMax = count($pathArray);
-                for ($i = 1; $i < $iMax; ++$i) {
-                    if ($pathArray[$i] == '..') {
-                        array_splice($pathArray, $i - 1, 2);
+                for ($i = 0; $i < $iMax; ++$i) {
+                    if ($pathArray[$i] == '..' && $i > 0) {
+                        unset($pathArray[$i], $pathArray[$i - 1]);
 
                         break;
                     }
@@ -131,28 +132,12 @@ class File
 
     public static function temporaryFilename(): string
     {
-        return tempnam(self::sysGetTempDir(), 'phpspreadsheet') ?: throw new Exception('Could not create temporary file');
-    }
-
-    /**
-     * Blocks phar:// and similar RCE-bearing wrappers.
-     * Note that many protocols, including http and zip, will already
-     * return false for is_file.
-     * A whitelist of protocols may be added if needed in future.
-     * data: is intentionally allowed (see #4823); callers needing strict
-     * on-disk-only semantics must validate $filename themselves.
-     */
-    public static function prohibitWrappers(string $filename): void
-    {
-        if (
-            Preg::IsMatch('~^phar://~i', $filename)
-            || (Preg::isMatch('/^([\w.\s\x00-\x1f]+):/', $filename) && !Preg::isMatch('/^([\w.]+):/', $filename))
-            || Preg::isMatch('~^[\w.]+://.*phar:~is', $filename)
-        ) {
-            throw new Exception(
-                "Disallowed stream wrapper used for {$filename}"
-            );
+        $filename = tempnam(self::sysGetTempDir(), 'phpspreadsheet');
+        if ($filename === false) {
+            throw new Exception('Could not create temporary file');
         }
+
+        return $filename;
     }
 
     /**
@@ -160,49 +145,42 @@ class File
      */
     public static function assertFile(string $filename, string $zipMember = ''): void
     {
-        self::prohibitWrappers($filename);
-        if (!is_file($filename) || !is_readable($filename)) {
-            throw new ReaderException('File "' . $filename . '" does not exist or is not readable.');
+        if (!is_file($filename)) {
+            throw new ReaderException('File "' . $filename . '" does not exist.');
+        }
+
+        if (!is_readable($filename)) {
+            throw new ReaderException('Could not open "' . $filename . '" for reading.');
         }
 
         if ($zipMember !== '') {
             $zipfile = "zip://$filename#$zipMember";
             if (!self::fileExists($zipfile)) {
-                // Has the file been saved with Windoze directory separators rather than unix?
-                $zipfile = "zip://$filename#" . str_replace('/', '\\', $zipMember);
-                if (!self::fileExists($zipfile)) {
-                    throw new ReaderException("Could not find zip member $zipfile");
-                }
+                throw new ReaderException("Could not find zip member $zipfile");
             }
         }
     }
 
     /**
      * Same as assertFile, except return true/false and don't throw Exception.
-     * Will nevertheless throw if filename uses invalid protocol, e.g. phar.
      */
-    public static function testFileNoThrow(string $filename, ?string $zipMember = null): bool
+    public static function testFileNoThrow(string $filename, string $zipMember = ''): bool
     {
-        self::prohibitWrappers($filename);
-        if (!is_file($filename) || !is_readable($filename)) {
+        if (!is_file($filename)) {
             return false;
         }
-        if ($zipMember === null) {
-            return true;
-        }
-        // validate zip, but don't check specific member
-        if ($zipMember === '') {
-            return self::validateZipFirst4($filename);
+
+        if (!is_readable($filename)) {
+            return false;
         }
 
-        $zipfile = "zip://$filename#$zipMember";
-        if (self::fileExists($zipfile)) {
-            return true;
+        if ($zipMember !== '') {
+            $zipfile = "zip://$filename#$zipMember";
+            if (!self::fileExists($zipfile)) {
+                return false;
+            }
         }
 
-        // Has the file been saved with Windoze directory separators rather than unix?
-        $zipfile = "zip://$filename#" . str_replace('/', '\\', $zipMember);
-
-        return self::fileExists($zipfile);
+        return true;
     }
 }

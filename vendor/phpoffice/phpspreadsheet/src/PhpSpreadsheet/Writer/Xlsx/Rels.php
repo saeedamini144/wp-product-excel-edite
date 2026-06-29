@@ -2,11 +2,8 @@
 
 namespace PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
-use Composer\Pcre\Preg;
-use PhpOffice\PhpSpreadsheet\Reader\Xlsx\Namespaces;
 use PhpOffice\PhpSpreadsheet\Shared\XMLWriter;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Worksheet\BaseDrawing;
 use PhpOffice\PhpSpreadsheet\Worksheet\MemoryDrawing;
 use PhpOffice\PhpSpreadsheet\Writer\Exception as WriterException;
 
@@ -17,7 +14,7 @@ class Rels extends WriterPart
      *
      * @return string XML Output
      */
-    public function writeRelationships(Spreadsheet $spreadsheet): string
+    public function writeRelationships(Spreadsheet $spreadsheet)
     {
         // Create XML writer
         $objWriter = null;
@@ -32,7 +29,7 @@ class Rels extends WriterPart
 
         // Relationships
         $objWriter->startElement('Relationships');
-        $objWriter->writeAttribute('xmlns', Namespaces::RELATIONSHIPS);
+        $objWriter->writeAttribute('xmlns', 'http://schemas.openxmlformats.org/package/2006/relationships');
 
         $customPropertyList = $spreadsheet->getProperties()->getCustomProperties();
         if (!empty($customPropertyList)) {
@@ -40,7 +37,7 @@ class Rels extends WriterPart
             $this->writeRelationship(
                 $objWriter,
                 4,
-                Namespaces::RELATIONSHIPS_CUSTOM_PROPERTIES,
+                'http://schemas.openxmlformats.org/officeDocument/2006/relationships/custom-properties',
                 'docProps/custom.xml'
             );
         }
@@ -49,7 +46,7 @@ class Rels extends WriterPart
         $this->writeRelationship(
             $objWriter,
             3,
-            Namespaces::RELATIONSHIPS_EXTENDED_PROPERTIES,
+            'http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties',
             'docProps/app.xml'
         );
 
@@ -57,7 +54,7 @@ class Rels extends WriterPart
         $this->writeRelationship(
             $objWriter,
             2,
-            Namespaces::CORE_PROPERTIES,
+            'http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties',
             'docProps/core.xml'
         );
 
@@ -65,17 +62,16 @@ class Rels extends WriterPart
         $this->writeRelationship(
             $objWriter,
             1,
-            Namespaces::OFFICE_DOCUMENT,
+            'http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument',
             'xl/workbook.xml'
         );
         // a custom UI in workbook ?
-        $target = $spreadsheet->getRibbonXMLData('target');
         if ($spreadsheet->hasRibbon()) {
             $this->writeRelationShip(
                 $objWriter,
                 5,
-                Namespaces::EXTENSIBILITY,
-                is_string($target) ? $target : ''
+                'http://schemas.microsoft.com/office/2006/relationships/ui/extensibility',
+                $spreadsheet->getRibbonXMLData('target')
             );
         }
 
@@ -89,7 +85,7 @@ class Rels extends WriterPart
      *
      * @return string XML Output
      */
-    public function writeWorkbookRelationships(Spreadsheet $spreadsheet): string
+    public function writeWorkbookRelationships(Spreadsheet $spreadsheet)
     {
         // Create XML writer
         $objWriter = null;
@@ -104,13 +100,13 @@ class Rels extends WriterPart
 
         // Relationships
         $objWriter->startElement('Relationships');
-        $objWriter->writeAttribute('xmlns', Namespaces::RELATIONSHIPS);
+        $objWriter->writeAttribute('xmlns', 'http://schemas.openxmlformats.org/package/2006/relationships');
 
         // Relationship styles.xml
         $this->writeRelationship(
             $objWriter,
             1,
-            Namespaces::STYLES,
+            'http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles',
             'styles.xml'
         );
 
@@ -118,7 +114,7 @@ class Rels extends WriterPart
         $this->writeRelationship(
             $objWriter,
             2,
-            Namespaces::THEME2,
+            'http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme',
             'theme/theme1.xml'
         );
 
@@ -126,7 +122,7 @@ class Rels extends WriterPart
         $this->writeRelationship(
             $objWriter,
             3,
-            Namespaces::SHARED_STRINGS,
+            'http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings',
             'sharedStrings.xml'
         );
 
@@ -136,7 +132,7 @@ class Rels extends WriterPart
             $this->writeRelationship(
                 $objWriter,
                 ($i + 1 + 3),
-                Namespaces::WORKSHEET,
+                'http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet',
                 'worksheets/sheet' . ($i + 1) . '.xml'
             );
         }
@@ -146,33 +142,10 @@ class Rels extends WriterPart
             $this->writeRelationShip(
                 $objWriter,
                 ($i + 1 + 3),
-                Namespaces::VBA,
+                'http://schemas.microsoft.com/office/2006/relationships/vbaProject',
                 'vbaProject.bin'
             );
-            ++$i; //increment i if needed for another relation
-        }
-
-        // Metadata needed for Dynamic Arrays
-        if ($this->getParentWriter()->useDynamicArrays() || $spreadsheet->hasInCellDrawings()) {
-            $this->writeRelationShip(
-                $objWriter,
-                ($i + 1 + 3),
-                Namespaces::RELATIONSHIPS_METADATA,
-                'metadata.xml'
-            );
-            ++$i; //increment i if needed for another relation
-        }
-
-        if ($spreadsheet->getActiveSheet()->getInCellDrawingCollection()->count() > 0) {
-            $i = ($i + 1 + 3);
-            $this->writeRelationship($objWriter, $i, Namespaces::RELATIONSHIPS_RICH_VALUE, 'richData/rdrichvalue.xml');
-            $this->writeRelationship($objWriter, ++$i, Namespaces::RELATIONSHIPS_RICH_VALUE_STRUCTURE, 'richData/rdrichvaluestructure.xml');
-            $this->writeRelationship($objWriter, ++$i, Namespaces::RELATIONSHIPS_RICH_VALUE_TYPES, 'richData/rdRichValueTypes.xml');
-            $this->writeRelationship($objWriter, ++$i, Namespaces::RELATIONSHIPS_RICH_VALUE_REL, 'richData/richValueRel.xml');
-        }
-
-        if ($spreadsheet->getUsesCheckBoxStyle()) {
-            $this->writeRelationship($objWriter, 'Fpb', Namespaces::RELATIONSHIPS_FEATURE_PROPERTY_BAG, 'featurePropertyBag/featurePropertyBag.xml');
+            ++$i; //increment i if needed for an another relation
         }
 
         $objWriter->endElement();
@@ -187,13 +160,12 @@ class Rels extends WriterPart
      *     rId1                 - Drawings
      *  rId_hyperlink_x     - Hyperlinks
      *
+     * @param int $pWorksheetId
      * @param bool $includeCharts Flag indicating if we should write charts
-     * @param int $tableRef Table ID
-     * @param string[] $zipContent
      *
      * @return string XML Output
      */
-    public function writeWorksheetRelationships(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $worksheet, int $worksheetId = 1, bool $includeCharts = false, int $tableRef = 1, array &$zipContent = []): string
+    public function writeWorksheetRelationships(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $pWorksheet, $pWorksheetId = 1, $includeCharts = false)
     {
         // Create XML writer
         $objWriter = null;
@@ -208,23 +180,22 @@ class Rels extends WriterPart
 
         // Relationships
         $objWriter->startElement('Relationships');
-        $objWriter->writeAttribute('xmlns', Namespaces::RELATIONSHIPS);
+        $objWriter->writeAttribute('xmlns', 'http://schemas.openxmlformats.org/package/2006/relationships');
 
         // Write drawing relationships?
         $drawingOriginalIds = [];
-        /** @var string[][][][] */
-        $unparsedLoadedData = $worksheet->getParentOrThrow()->getUnparsedLoadedData();
-        if (isset($unparsedLoadedData['sheets'][$worksheet->getCodeName()]['drawingOriginalIds'])) {
-            $drawingOriginalIds = $unparsedLoadedData['sheets'][$worksheet->getCodeName()]['drawingOriginalIds'];
+        $unparsedLoadedData = $pWorksheet->getParent()->getUnparsedLoadedData();
+        if (isset($unparsedLoadedData['sheets'][$pWorksheet->getCodeName()]['drawingOriginalIds'])) {
+            $drawingOriginalIds = $unparsedLoadedData['sheets'][$pWorksheet->getCodeName()]['drawingOriginalIds'];
         }
 
         if ($includeCharts) {
-            $charts = $worksheet->getChartCollection();
+            $charts = $pWorksheet->getChartCollection();
         } else {
             $charts = [];
         }
 
-        if (($worksheet->getDrawingCollection()->count() > 0) || (count($charts) > 0) || $drawingOriginalIds) {
+        if (($pWorksheet->getDrawingCollection()->count() > 0) || (count($charts) > 0) || $drawingOriginalIds) {
             $rId = 1;
 
             // Use original $relPath to get original $rId.
@@ -232,42 +203,28 @@ class Rels extends WriterPart
             // (! synchronize with \PhpOffice\PhpSpreadsheet\Writer\Xlsx\Worksheet::writeDrawings)
             reset($drawingOriginalIds);
             $relPath = key($drawingOriginalIds);
-            if (isset($relPath, $drawingOriginalIds[$relPath])) {
+            if (isset($drawingOriginalIds[$relPath])) {
                 $rId = (int) (substr($drawingOriginalIds[$relPath], 3));
             }
 
             // Generate new $relPath to write drawing relationship
-            $relPath = '../drawings/drawing' . $worksheetId . '.xml';
+            $relPath = '../drawings/drawing' . $pWorksheetId . '.xml';
             $this->writeRelationship(
                 $objWriter,
                 $rId,
-                Namespaces::RELATIONSHIPS_DRAWING,
+                'http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing',
                 $relPath
             );
-        }
-
-        $backgroundImage = $worksheet->getBackgroundImage();
-        if ($backgroundImage !== '') {
-            $rId = 'Bg';
-            $uniqueName = md5(mt_rand(0, 9999) . time() . mt_rand(0, 9999));
-            $relPath = "../media/$uniqueName." . $worksheet->getBackgroundExtension();
-            $this->writeRelationship(
-                $objWriter,
-                $rId,
-                Namespaces::IMAGE,
-                $relPath
-            );
-            $zipContent["xl/media/$uniqueName." . $worksheet->getBackgroundExtension()] = $backgroundImage;
         }
 
         // Write hyperlink relationships?
         $i = 1;
-        foreach ($worksheet->getHyperlinkCollection() as $hyperlink) {
+        foreach ($pWorksheet->getHyperlinkCollection() as $hyperlink) {
             if (!$hyperlink->isInternal()) {
                 $this->writeRelationship(
                     $objWriter,
                     '_hyperlink_' . $i,
-                    Namespaces::HYPERLINK,
+                    'http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink',
                     $hyperlink->getUrl(),
                     'External'
                 );
@@ -278,73 +235,56 @@ class Rels extends WriterPart
 
         // Write comments relationship?
         $i = 1;
-        if (count($worksheet->getComments()) > 0 || isset($unparsedLoadedData['sheets'][$worksheet->getCodeName()]['legacyDrawing'])) {
+        if (count($pWorksheet->getComments()) > 0) {
             $this->writeRelationship(
                 $objWriter,
                 '_comments_vml' . $i,
-                Namespaces::VML,
-                '../drawings/vmlDrawing' . $worksheetId . '.vml'
+                'http://schemas.openxmlformats.org/officeDocument/2006/relationships/vmlDrawing',
+                '../drawings/vmlDrawing' . $pWorksheetId . '.vml'
             );
-        }
 
-        if (count($worksheet->getComments()) > 0) {
             $this->writeRelationship(
                 $objWriter,
                 '_comments' . $i,
-                Namespaces::COMMENTS,
-                '../comments' . $worksheetId . '.xml'
-            );
-        }
-
-        // Write Table
-        $tableCount = $worksheet->getTableCollection()->count();
-        for ($i = 1; $i <= $tableCount; ++$i) {
-            $this->writeRelationship(
-                $objWriter,
-                '_table_' . $i,
-                Namespaces::RELATIONSHIPS_TABLE,
-                '../tables/table' . $tableRef++ . '.xml'
+                'http://schemas.openxmlformats.org/officeDocument/2006/relationships/comments',
+                '../comments' . $pWorksheetId . '.xml'
             );
         }
 
         // Write header/footer relationship?
         $i = 1;
-        if (count($worksheet->getHeaderFooter()->getImages()) > 0) {
+        if (count($pWorksheet->getHeaderFooter()->getImages()) > 0) {
             $this->writeRelationship(
                 $objWriter,
                 '_headerfooter_vml' . $i,
-                Namespaces::VML,
-                '../drawings/vmlDrawingHF' . $worksheetId . '.vml'
+                'http://schemas.openxmlformats.org/officeDocument/2006/relationships/vmlDrawing',
+                '../drawings/vmlDrawingHF' . $pWorksheetId . '.vml'
             );
         }
 
-        $this->writeUnparsedRelationship($worksheet, $objWriter, 'ctrlProps', Namespaces::RELATIONSHIPS_CTRLPROP);
-        $this->writeUnparsedRelationship($worksheet, $objWriter, 'vmlDrawings', Namespaces::VML);
-        $this->writeUnparsedRelationship($worksheet, $objWriter, 'printerSettings', Namespaces::RELATIONSHIPS_PRINTER_SETTINGS);
+        $this->writeUnparsedRelationship($pWorksheet, $objWriter, 'ctrlProps', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/ctrlProp');
+        $this->writeUnparsedRelationship($pWorksheet, $objWriter, 'vmlDrawings', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/vmlDrawing');
+        $this->writeUnparsedRelationship($pWorksheet, $objWriter, 'printerSettings', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/printerSettings');
 
         $objWriter->endElement();
 
         return $objWriter->getData();
     }
 
-    private function writeUnparsedRelationship(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $worksheet, XMLWriter $objWriter, string $relationship, string $type): void
+    private function writeUnparsedRelationship(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $pWorksheet, XMLWriter $objWriter, $relationship, $type): void
     {
-        /** @var mixed[][][][] */
-        $unparsedLoadedData = $worksheet->getParentOrThrow()->getUnparsedLoadedData();
-        if (!isset($unparsedLoadedData['sheets'][$worksheet->getCodeName()][$relationship])) {
+        $unparsedLoadedData = $pWorksheet->getParent()->getUnparsedLoadedData();
+        if (!isset($unparsedLoadedData['sheets'][$pWorksheet->getCodeName()][$relationship])) {
             return;
         }
 
-        foreach ($unparsedLoadedData['sheets'][$worksheet->getCodeName()][$relationship] as $rId => $value) {
-            if (!str_starts_with($rId, '_headerfooter_vml')) {
-                /** @var string[] $value */
-                $this->writeRelationship(
-                    $objWriter,
-                    $rId,
-                    $type,
-                    $value['relFilePath']
-                );
-            }
+        foreach ($unparsedLoadedData['sheets'][$pWorksheet->getCodeName()][$relationship] as $rId => $value) {
+            $this->writeRelationship(
+                $objWriter,
+                $rId,
+                $type,
+                $value['relFilePath']
+            );
         }
     }
 
@@ -356,14 +296,8 @@ class Rels extends WriterPart
      *
      * @return string XML Output
      */
-    public function writeDrawingRelationships(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $worksheet, int &$chartRef, bool $includeCharts = false): string
+    public function writeDrawingRelationships(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $pWorksheet, &$chartRef, $includeCharts = false)
     {
-        // Check if we should use pass-through relationships
-        $passThroughRels = $this->getPassThroughDrawingRelationships($worksheet);
-        if ($passThroughRels !== null) {
-            return $passThroughRels;
-        }
-
         // Create XML writer
         $objWriter = null;
         if ($this->getParentWriter()->getUseDiskCaching()) {
@@ -377,23 +311,24 @@ class Rels extends WriterPart
 
         // Relationships
         $objWriter->startElement('Relationships');
-        $objWriter->writeAttribute('xmlns', Namespaces::RELATIONSHIPS);
+        $objWriter->writeAttribute('xmlns', 'http://schemas.openxmlformats.org/package/2006/relationships');
 
         // Loop through images and write relationships
         $i = 1;
-        $iterator = $worksheet->getDrawingCollection()->getIterator();
+        $iterator = $pWorksheet->getDrawingCollection()->getIterator();
         while ($iterator->valid()) {
-            $drawing = $iterator->current();
             if (
-                $drawing instanceof \PhpOffice\PhpSpreadsheet\Worksheet\Drawing
-                || $drawing instanceof MemoryDrawing
+                $iterator->current() instanceof \PhpOffice\PhpSpreadsheet\Worksheet\Drawing
+                || $iterator->current() instanceof MemoryDrawing
             ) {
                 // Write relationship for image drawing
+                /** @var \PhpOffice\PhpSpreadsheet\Worksheet\Drawing $drawing */
+                $drawing = $iterator->current();
                 $this->writeRelationship(
                     $objWriter,
                     $i,
-                    Namespaces::IMAGE,
-                    '../media/' . $drawing->getIndexedFilename()
+                    'http://schemas.openxmlformats.org/officeDocument/2006/relationships/image',
+                    '../media/' . str_replace(' ', '', $drawing->getIndexedFilename())
                 );
 
                 $i = $this->writeDrawingHyperLink($objWriter, $drawing, $i);
@@ -405,13 +340,13 @@ class Rels extends WriterPart
 
         if ($includeCharts) {
             // Loop through charts and write relationships
-            $chartCount = $worksheet->getChartCount();
+            $chartCount = $pWorksheet->getChartCount();
             if ($chartCount > 0) {
                 for ($c = 0; $c < $chartCount; ++$c) {
                     $this->writeRelationship(
                         $objWriter,
                         $i++,
-                        Namespaces::RELATIONSHIPS_CHART,
+                        'http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart',
                         '../charts/chart' . ++$chartRef . '.xml'
                     );
                 }
@@ -428,7 +363,7 @@ class Rels extends WriterPart
      *
      * @return string XML Output
      */
-    public function writeHeaderFooterDrawingRelationships(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $worksheet): string
+    public function writeHeaderFooterDrawingRelationships(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $pWorksheet)
     {
         // Create XML writer
         $objWriter = null;
@@ -443,53 +378,16 @@ class Rels extends WriterPart
 
         // Relationships
         $objWriter->startElement('Relationships');
-        $objWriter->writeAttribute('xmlns', Namespaces::RELATIONSHIPS);
+        $objWriter->writeAttribute('xmlns', 'http://schemas.openxmlformats.org/package/2006/relationships');
 
         // Loop through images and write relationships
-        foreach ($worksheet->getHeaderFooter()->getImages() as $key => $value) {
+        foreach ($pWorksheet->getHeaderFooter()->getImages() as $key => $value) {
             // Write relationship for image drawing
             $this->writeRelationship(
                 $objWriter,
                 $key,
-                Namespaces::IMAGE,
+                'http://schemas.openxmlformats.org/officeDocument/2006/relationships/image',
                 '../media/' . $value->getIndexedFilename()
-            );
-        }
-
-        $objWriter->endElement();
-
-        return $objWriter->getData();
-    }
-
-    public function writeVMLDrawingRelationships(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $worksheet): string
-    {
-        // Create XML writer
-        $objWriter = null;
-        if ($this->getParentWriter()->getUseDiskCaching()) {
-            $objWriter = new XMLWriter(XMLWriter::STORAGE_DISK, $this->getParentWriter()->getDiskCachingDirectory());
-        } else {
-            $objWriter = new XMLWriter(XMLWriter::STORAGE_MEMORY);
-        }
-
-        // XML header
-        $objWriter->startDocument('1.0', 'UTF-8', 'yes');
-
-        // Relationships
-        $objWriter->startElement('Relationships');
-        $objWriter->writeAttribute('xmlns', Namespaces::RELATIONSHIPS);
-
-        // Loop through images and write relationships
-        foreach ($worksheet->getComments() as $comment) {
-            if (!$comment->hasBackgroundImage()) {
-                continue;
-            }
-
-            $bgImage = $comment->getBackgroundImage();
-            $this->writeRelationship(
-                $objWriter,
-                $bgImage->getImageIndex(),
-                Namespaces::IMAGE,
-                '../media/' . $bgImage->getMediaFilename()
             );
         }
 
@@ -501,22 +399,23 @@ class Rels extends WriterPart
     /**
      * Write Override content type.
      *
-     * @param int|string $id Relationship ID. rId will be prepended!
-     * @param string $type Relationship type
-     * @param string $target Relationship target
-     * @param string $targetMode Relationship target mode
+     * @param XMLWriter $objWriter XML Writer
+     * @param int $pId Relationship ID. rId will be prepended!
+     * @param string $pType Relationship type
+     * @param string $pTarget Relationship target
+     * @param string $pTargetMode Relationship target mode
      */
-    private function writeRelationship(XMLWriter $objWriter, $id, string $type, string $target, string $targetMode = ''): void
+    private function writeRelationship(XMLWriter $objWriter, $pId, $pType, $pTarget, $pTargetMode = ''): void
     {
-        if ($type != '' && $target != '') {
+        if ($pType != '' && $pTarget != '') {
             // Write relationship
             $objWriter->startElement('Relationship');
-            $objWriter->writeAttribute('Id', 'rId' . $id);
-            $objWriter->writeAttribute('Type', $type);
-            $objWriter->writeAttribute('Target', $target);
+            $objWriter->writeAttribute('Id', 'rId' . $pId);
+            $objWriter->writeAttribute('Type', $pType);
+            $objWriter->writeAttribute('Target', $pTarget);
 
-            if ($targetMode != '') {
-                $objWriter->writeAttribute('TargetMode', $targetMode);
+            if ($pTargetMode != '') {
+                $objWriter->writeAttribute('TargetMode', $pTargetMode);
             }
 
             $objWriter->endElement();
@@ -525,7 +424,12 @@ class Rels extends WriterPart
         }
     }
 
-    private function writeDrawingHyperLink(XMLWriter $objWriter, BaseDrawing $drawing, int $i): int
+    /**
+     * @param \PhpOffice\PhpSpreadsheet\Worksheet\Drawing $drawing
+     *
+     * @return int
+     */
+    private function writeDrawingHyperLink($objWriter, $drawing, $i)
     {
         if ($drawing->getHyperlink() === null) {
             return $i;
@@ -535,31 +439,11 @@ class Rels extends WriterPart
         $this->writeRelationship(
             $objWriter,
             $i,
-            Namespaces::HYPERLINK,
-            Preg::replace('~^sheet://~', '#', $drawing->getHyperlink()->getUrl()),
+            'http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink',
+            $drawing->getHyperlink()->getUrl(),
             $drawing->getHyperlink()->getTypeHyperlink()
         );
 
         return $i;
-    }
-
-    /**
-     * Get pass-through drawing relationships XML if available.
-     *
-     * Note: When pass-through is used, the original relationships are returned as-is.
-     * This means any drawings (images, charts, shapes) added programmatically after
-     * loading will not be included in the relationships. This is a known limitation
-     * when combining pass-through with drawing modifications.
-     */
-    private function getPassThroughDrawingRelationships(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $worksheet): ?string
-    {
-        /** @var array<string, array<string, mixed>> $sheets */
-        $sheets = $worksheet->getParentOrThrow()->getUnparsedLoadedData()['sheets'] ?? [];
-        $sheetData = $sheets[$worksheet->getCodeName()] ?? [];
-        if (($sheetData['drawingPassThroughEnabled'] ?? false) !== true || !is_string($sheetData['drawingRelationships'] ?? null)) {
-            return null;
-        }
-
-        return $sheetData['drawingRelationships'];
     }
 }
